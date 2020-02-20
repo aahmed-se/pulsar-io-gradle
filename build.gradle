@@ -1,0 +1,67 @@
+plugins {
+    id 'java'
+    id 'io.freefair.lombok' version "5.0.0-rc2"
+    id "com.github.hierynomus.license" version "0.15.0"
+}
+
+final String BUILD_TIMESTAMP_FORMAT = "yyyy-MM-dd'T'HH:mm:ss'Z'"
+
+ext.versions = [
+   pulsar: "2.5.0"
+]
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+group = 'org.apache.pulsar'
+version = '0.0.1'
+
+repositories {
+    jcenter()
+}
+
+dependencies {
+    compileOnly     "org.apache.pulsar:pulsar-io-core:${versions.pulsar}"
+    compileOnly     "org.apache.pulsar:pulsar-io-common:${versions.pulsar}"
+    compile         'com.google.guava:guava:28.2-jre'
+    compile         'com.google.code.gson:gson:2.8.6'
+    compile         'com.fasterxml.jackson.core:jackson-databind:2.10.2'
+    compile         'com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.10.2'
+    compile         'org.apache.commons:commons-lang3:3.9'
+    testCompile     'org.slf4j:slf4j-api:1.7.25'
+    testCompile     'org.apache.logging.log4j:log4j-api:2.2'
+    testCompile     'org.apache.logging.log4j:log4j-core:2.2'
+    testCompile     'org.apache.logging.log4j:log4j-slf4j-impl:2.2'
+    testCompile     "org.apache.pulsar:pulsar-io-core:${versions.pulsar}"
+    testCompile     "org.apache.pulsar:pulsar-io-common:${versions.pulsar}"
+    testCompile     'org.testng:testng:7.1.0'
+}
+
+task nar (type: Jar, dependsOn: jar) {
+    into('META-INF/bundled-dependencies') {
+         from { configurations.runtimeClasspath }
+    }
+    with jar
+    archiveExtension = 'nar'
+    manifest {
+        def defaultAttrs = [
+                'Build-Timestamp'                    : new Date().format(BUILD_TIMESTAMP_FORMAT),
+                'Built-By'                           : System.properties['user.name'] ?: 'unknown',
+                'Nar-Id'                             : project.name,
+                'Nar-Version'                        : project.version,
+                'Clone-During-Instance-Class-Loading': false,
+                'Created-By'                         : "Gradle ${gradle.gradleVersion}",
+                'Build-Jdk'                          : "Groovy ${GroovySystem.version}"
+        ]
+        attributes(defaultAttrs)
+    }
+}
+
+license {
+    excludes(["**/syslog"])
+}
+
+test {
+    useTestNG()
+    exclude '**/*IntegrationTest.class'
+}
